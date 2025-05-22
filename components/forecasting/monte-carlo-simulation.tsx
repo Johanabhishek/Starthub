@@ -1,20 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  BarChart,
-  Bar,
-  Cell,
-} from "recharts"
+import dynamic from 'next/dynamic'
 import { ChartContainer } from "@/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { TooltipProps } from "recharts"
+
+const Chart = dynamic(
+  () => import('./chart-wrapper').then((mod) => mod.Chart),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[500px] w-full items-center justify-center rounded-md bg-zinc-800/50">
+        <div className="text-sm text-zinc-400">Loading charts...</div>
+      </div>
+    ),
+  }
+)
 
 // Sample data for Monte Carlo simulation
 const simulationData = [
@@ -39,13 +41,16 @@ const distributionData = [
 export function MonteCarloSimulation() {
   const [mounted, setMounted] = useState(false)
 
-  // Prevent hydration errors with SSR
   useEffect(() => {
     setMounted(true)
   }, [])
 
   if (!mounted) {
-    return <div className="h-[500px] w-full animate-pulse rounded-md bg-zinc-800/50" />
+    return (
+      <div className="flex h-[500px] w-full items-center justify-center rounded-md bg-zinc-800/50">
+        <div className="text-sm text-zinc-400">Loading charts...</div>
+      </div>
+    )
   }
 
   const formatYAxis = (value: number) => {
@@ -58,7 +63,7 @@ export function MonteCarloSimulation() {
     return `$${value}`
   }
 
-  const SimulationTooltip = ({ active, payload, label }: any) => {
+  const SimulationTooltip = ({ active, payload, label }: TooltipProps<any, any>) => {
     if (active && payload && payload.length) {
       return (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 shadow-md">
@@ -121,7 +126,7 @@ export function MonteCarloSimulation() {
     return null
   }
 
-  const DistributionTooltip = ({ active, payload }: any) => {
+  const DistributionTooltip = ({ active, payload }: TooltipProps<any, any>) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
       return (
@@ -150,90 +155,33 @@ export function MonteCarloSimulation() {
               config={{
                 p90: {
                   label: "90th Percentile",
-                  color: "hsl(var(--chart-1))",
+                  color: "#8b5cf6",
                 },
                 p75: {
                   label: "75th Percentile",
-                  color: "hsl(var(--chart-2))",
+                  color: "#3b82f6",
                 },
                 p50: {
                   label: "Median (50th)",
-                  color: "hsl(var(--chart-3))",
+                  color: "#10b981",
                 },
                 p25: {
                   label: "25th Percentile",
-                  color: "hsl(var(--chart-4))",
+                  color: "#f59e0b",
                 },
                 p10: {
                   label: "10th Percentile",
-                  color: "hsl(var(--chart-5))",
+                  color: "#ef4444",
                 },
               }}
               className="h-[400px]"
             >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={simulationData} margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
-                  <defs>
-                    <linearGradient id="colorP5090" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorP2575" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis dataKey="year" axisLine={false} tickLine={false} tick={{ fill: "#71717a", fontSize: 12 }} />
-                  <YAxis
-                    tickFormatter={formatYAxis}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#71717a", fontSize: 12 }}
-                  />
-                  <Tooltip content={<SimulationTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="p10"
-                    stroke="#ef4444"
-                    fill="none"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="p25"
-                    stroke="#f59e0b"
-                    fill="none"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="p50"
-                    stroke="#10b981"
-                    fill="none"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="p75"
-                    stroke="#3b82f6"
-                    fill="url(#colorP2575)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="p90"
-                    stroke="#8b5cf6"
-                    fill="url(#colorP5090)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <Chart
+                type="simulation"
+                data={simulationData}
+                tooltipContent={SimulationTooltip}
+                formatYAxis={formatYAxis}
+              />
             </ChartContainer>
           </div>
 
@@ -267,32 +215,16 @@ export function MonteCarloSimulation() {
               config={{
                 probability: {
                   label: "Probability",
-                  color: "hsl(var(--chart-1))",
+                  color: "#3b82f6",
                 },
               }}
               className="h-[400px]"
             >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={distributionData}
-                  margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis dataKey="value" axisLine={false} tickLine={false} tick={{ fill: "#71717a", fontSize: 12 }} />
-                  <YAxis
-                    tickFormatter={(value) => `${value}%`}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#71717a", fontSize: 12 }}
-                  />
-                  <Tooltip content={<DistributionTooltip />} />
-                  <Bar dataKey="probability" radius={[4, 4, 0, 0]}>
-                    {distributionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <Chart
+                type="distribution"
+                data={distributionData}
+                tooltipContent={DistributionTooltip}
+              />
             </ChartContainer>
           </div>
 
